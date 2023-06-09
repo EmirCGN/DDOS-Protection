@@ -1,33 +1,22 @@
 package de.emir.ddosprotection.logging;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Logger {
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     public static void logAccess(String ipAddress, boolean isAllowed) {
-        String logMessage = "Access from IP: " + ipAddress + " - Allowed: " + isAllowed;
-        System.out.println(logMessage);
-
-        if (!isAllowed) {
-            triggerAlarm(ipAddress);
-        }
-
-        if (isAllowed) {
-            sendNotification(ipAddress);
-        }
-
-        updateStatistics(ipAddress, isAllowed);
+        String timestamp = LocalDateTime.now().format(FORMATTER);
+        System.out.println(timestamp + " - IP Address: " + ipAddress + ", Access Allowed: " + isAllowed);
+        // Log the access event using the AuditLogger
+        AuditLogger.logAudit(timestamp + " - IP Address: " + ipAddress + ", Access Allowed: " + isAllowed);
     }
 
-    private static void triggerAlarm(String ipAddress) {
-        // Code zum Auslösen eines Alarms oder anderen Aktionen bei nicht erlaubtem Zugriff
-        System.out.println("Alarm ausgelöst für IP: " + ipAddress);
-    }
-
-    private static void sendNotification(String ipAddress) {
-        // Code zum Senden einer Benachrichtigung bei erlaubtem Zugriff
-        System.out.println("Benachrichtigung gesendet für IP: " + ipAddress);
-    }
-
-    private static void updateStatistics(String ipAddress, boolean isAllowed) {
-        // Code zum Aktualisieren von Statistiken oder Metriken
-        System.out.println("Statistiken aktualisiert für IP: " + ipAddress);
+    public static void logFailedLogin(String ipAddress, int failedAttempts) {
+        String timestamp = LocalDateTime.now().format(FORMATTER);
+        System.out.println(timestamp + " - IP Address: " + ipAddress + ", Failed Login Attempts: " + failedAttempts);
+        // Log the failed login event using the AuditLogger
+        AuditLogger.logAudit(timestamp + " - IP Address: " + ipAddress + ", Failed Login Attempts: " + failedAttempts);
     }
 }

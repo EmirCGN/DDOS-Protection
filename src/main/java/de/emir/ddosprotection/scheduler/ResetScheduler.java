@@ -8,13 +8,13 @@ import java.util.concurrent.TimeUnit;
 
 public class ResetScheduler {
     private final long RESET_INTERVAL_MINUTES = 60;
-    private ScheduledExecutorService executorService;
-    private DdosProtection ddosProtection;
+    private final ScheduledExecutorService executorService;
+    private final DdosProtection ddosProtection;
 
     public ResetScheduler(DdosProtection ddosProtection) {
         this.ddosProtection = ddosProtection;
-        executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(this::resetAllCounts, 0, RESET_INTERVAL_MINUTES, TimeUnit.MINUTES);
+        this.executorService = Executors.newSingleThreadScheduledExecutor();
+        this.executorService.scheduleAtFixedRate(this::resetAllCounts, 0, RESET_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 
     private void resetAllCounts() {

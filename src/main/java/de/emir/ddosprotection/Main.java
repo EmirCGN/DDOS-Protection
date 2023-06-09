@@ -35,4 +35,5 @@ public class Main {
             Logger.logAccess(ipAddress4, isAllowed4);
         }
     }
+
 }

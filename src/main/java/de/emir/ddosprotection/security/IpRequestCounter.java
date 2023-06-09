@@ -1,69 +1,44 @@
 package de.emir.ddosprotection.security;
 
-import de.emir.ddosprotection.DdosProtection;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class IpRequestCounter {
-    private ConcurrentHashMap<String, Long> requestCount;
-    private final int MAX_REQUESTS_PER_SECOND;
-    private final long REQUEST_WINDOW_MILLISECONDS;
-    private final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
-    private Map<String, Integer> failedLoginAttempts; // Hinzufügen einer Map für fehlgeschlagene Anmeldeversuche
-    private DdosProtection ddosProtection;
+    private final ConcurrentHashMap<String, Long> requestCounters;
+    private final int maxRequestsPerSecond;
+    private final long requestWindowMilliseconds;
+    private long lastRequestTime;
 
     public IpRequestCounter(int maxRequestsPerSecond, long requestWindowMilliseconds) {
-        requestCount = new ConcurrentHashMap<>();
-        failedLoginAttempts = new ConcurrentHashMap<>(); // Initialisierung der Map für fehlgeschlagene Anmeldeversuche
-        MAX_REQUESTS_PER_SECOND = maxRequestsPerSecond;
-        REQUEST_WINDOW_MILLISECONDS = requestWindowMilliseconds;
-    }
-
-    public boolean isAllowed(String ipAddress) {
-        long currentTime = System.currentTimeMillis();
-        long startTime = currentTime - REQUEST_WINDOW_MILLISECONDS;
-
-        requestCount.entrySet().removeIf(entry -> entry.getValue() < startTime);
-
-        long currentCount = requestCount.getOrDefault(ipAddress, 0L);
-
-        if (currentCount >= MAX_REQUESTS_PER_SECOND) {
-            return false;
-        }
-
-        requestCount.put(ipAddress, currentCount + 1L);
-        return true;
+        this.requestCounters = new ConcurrentHashMap<>();
+        this.maxRequestsPerSecond = maxRequestsPerSecond;
+        this.requestWindowMilliseconds = requestWindowMilliseconds;
+        this.lastRequestTime = 0;
     }
 
     public void resetCount(String ipAddress) {
-        requestCount.remove(ipAddress);
+        requestCounters.remove(ipAddress);
     }
 
     public void resetAllCounts() {
-        requestCount.clear();
-        failedLoginAttempts.clear();
-        System.out.println("Alle Anfragezähler und fehlgeschlagenen Anmeldeversuche zurückgesetzt");
+        requestCounters.clear();
+        System.out.println("All request counters have been reset");
     }
 
-    public void registerFailedLoginAttempt(String ipAddress) {
-        // Überprüfen, ob der IP-Zähler für fehlgeschlagene Anmeldeversuche bereits vorhanden ist
-        if (failedLoginAttempts.containsKey(ipAddress)) {
-            int currentCount = failedLoginAttempts.get(ipAddress);
-            // Inkrementieren des Zählers um 1
-            failedLoginAttempts.put(ipAddress, currentCount + 1);
-        } else {
-            // IP-Zähler initialisieren und auf 1 setzen
-            failedLoginAttempts.put(ipAddress, 1);
+    public synchronized boolean isAllowed(String ipAddress) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastRequestTime > requestWindowMilliseconds) {
+            // Reset request count if the request window has elapsed
+            requestCounters.remove(ipAddress);
+        }
+        lastRequestTime = currentTime;
+
+        Long requestCount = requestCounters.get(ipAddress);
+        if (requestCount != null && requestCount >= maxRequestsPerSecond) {
+            return false;
         }
 
-        // Weitere Aktionen für fehlgeschlagene Anmeldeversuche ausführen
-        System.out.println("Fehlgeschlagener Anmeldeversuch registriert für IP: " + ipAddress);
-
-        // Überprüfen, ob die maximale Anzahl von fehlgeschlagenen Anmeldeversuchen erreicht wurde
-        if (failedLoginAttempts.get(ipAddress) >= MAX_FAILED_LOGIN_ATTEMPTS) {
-            // Hier können Sie weitere Aktionen ausführen, wie das Blockieren der IP-Adresse oder das Auslösen eines Alarms
-            System.out.println("Maximale Anzahl von fehlgeschlagenen Anmeldeversuchen erreicht für IP: " + ipAddress);
-        }
+        requestCounters.put(ipAddress, requestCount != null ? requestCount + 1 : 1);
+        return true;
     }
 }
